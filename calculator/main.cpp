@@ -97,6 +97,28 @@ double factor() {
 				value = fmod(value, base());
 				break;
 			}
+			case '*': {
+				next();
+				if (token == '*') {
+					next();
+					value = pow(value, base());
+				} else {
+					ungetc(token, stdin);
+					token = '*';
+					return value;
+				}
+			}
+			case '/': {
+				next();
+				if (token == '/') {
+					next();
+					value = int(value / factor());
+				} else {
+					ungetc(token, stdin);
+					token = '/';
+					return value;
+				}
+			}
 			default: {
 				return value;
 			}
