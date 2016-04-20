@@ -1,42 +1,106 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <math.h>
-
 /* Grammar(EBNF):
-	<exp> -> <term> { <addop> <term> }
+	<statement> -> <identifier> = <expression>
+	<identifier> -> $[a-zA-Z0-9_]{[a-zA-Z0-9_]}
+	<expression> -> <term> { <addop> <term> }
 	<addop> -> + | -
 	<term> -> <factor> { <mulop> <factor> }
 	<mulop> -> * | /
 	<factor> -> <base> { <powop> <base> }
 	<powop> -> ^ | @ | % | ** | //
-	<base> -> (exp) | Number
+	<base> -> (expression) | <identifier> | NUMBER
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <math.h>
+#include <unordered_map>
+#include <stdexcept>
+
+using namespace std;
+
 char token;
-double exp();
+unordered_map<string, double> symbol;
+
+double expression();
 double term();
 double factor();
 double base();
 void next();
-#define error(message) fprintf(stderr, "%s:%d: Error: %s\n", __FILE__, __LINE__, message); exit(EXIT_FAILURE);
+#define error(message) fprintf(stderr, "%s:%d: Error: %s\n", __FILE__, __LINE__, message); throw runtime_error(message);
 
 int main(int argc, char* argv[]) {
 	printf("Nano Calculator (build: %s %s)\n", __DATE__, __TIME__);
-	printf(">>> ");
 
-	next();
-	double value = exp();
+	while (true) {
+		try {
+			printf(">>> ");
+			next();
+			double value;
 
-	if (token == '\n') {
-		printf("%.17g\n", value);
-	} else {
-		error("incomplete line");
+			switch (token) {
+				case '$': {
+					char buffer[256];
+					if (scanf("%255[a-zA-Z0-9_]", buffer)) {
+						next();
+						switch (token) {
+							case '=': {
+								next();
+								value = expression();
+								symbol[buffer] = value;
+								break;
+							}
+							case '\n': {
+								if (symbol.find(buffer) != symbol.end()) {
+									value = symbol[buffer];
+								} else {
+									ungetc(token, stdin);
+									error("undefined identifier");
+								}
+								break;
+							}
+							default: {
+								if (symbol.find(buffer) != symbol.end()) {
+									ungetc(token, stdin);
+									string literal = to_string(symbol[buffer]);
+									for (auto rit = literal.rbegin(); rit != literal.rend(); rit++) {
+										ungetc(*rit, stdin);
+									}
+									next();
+									value = expression();
+								} else {
+									error("undefined identifier");
+								}
+							}
+						}
+					} else {
+						error("invalid identifier");
+					}
+					break;
+				}
+				case '\n': {
+					continue;
+				}
+				default: {
+					value = expression();
+				}
+			}
+
+			if (token == '\n') {
+				printf("%.17g\n", value);
+			} else {
+				error("incomplete line");
+			}
+		} catch (runtime_error& e) {
+			char c;
+			while((c = getchar()) != '\n' && c != EOF);
+		}
 	}
+
 	return EXIT_SUCCESS;
 }
 
-double exp() {
+double expression() {
 	double value = term();
 	while (true) {
 		switch (token) {
@@ -107,17 +171,19 @@ double factor() {
 					token = '*';
 					return value;
 				}
+				break;
 			}
 			case '/': {
 				next();
 				if (token == '/') {
 					next();
-					value = int(value / factor());
+					value = int(value / base());
 				} else {
 					ungetc(token, stdin);
 					token = '/';
 					return value;
 				}
+				break;
 			}
 			default: {
 				return value;
@@ -127,30 +193,41 @@ double factor() {
 }
 
 double base() {
-	char sign = 1;
 	double value;
 	if (token == '(') {
 		next();
-		value = exp();
+		value = expression();
 		if (token == ')') {
 			next();
 		} else {
 			error("unmatched parentheses");
 		}
-	} else {
-		if (token == '-') {
-			sign = -1;
+	} else if (token == '$') {
+		char buffer[256];
+		if (scanf("%255[a-zA-Z0-9_]", buffer)) {
 			next();
+			if (symbol.find(buffer) != symbol.end()) {
+				value = symbol[buffer];
+			} else {
+				error("undefined identifier");
+			}
+		} else {
+			error("invalid identifier");
 		}
-		if (isdigit(token)) {
+	} else {
+		if (isdigit(token) || token == '-') {
 			ungetc(token, stdin);
-			scanf("%lf", &value);
-			next();
+			if (scanf("%lf", &value)) {
+				next();
+			} else {
+				error("numeric scan error");
+			}
 		} else {
 			error("numeric value error");
 		}
 	}
-	return sign * value;
+
+	return value;
 }
 
 void next() {
