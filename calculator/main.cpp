@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <string.h>
 #include <unordered_map>
 #include <stdexcept>
 
@@ -50,27 +51,13 @@ int main(int argc, char* argv[]) {
 								symbol[buffer] = value;
 								break;
 							}
-							case '\n': {
-								if (symbol.find(buffer) != symbol.end()) {
-									value = symbol[buffer];
-								} else {
-									ungetc(token, stdin);
-									error("undefined identifier");
-								}
-								break;
-							}
 							default: {
-								if (symbol.find(buffer) != symbol.end()) {
-									ungetc(token, stdin);
-									string literal = to_string(symbol[buffer]);
-									for (auto rit = literal.rbegin(); rit != literal.rend(); rit++) {
-										ungetc(*rit, stdin);
-									}
-									next();
-									value = expression();
-								} else {
-									error("undefined identifier");
+								ungetc(token, stdin);
+								for (int i = strlen(buffer) - 1; i >= 0; i--) {
+									ungetc(buffer[i], stdin);
 								}
+								token = '$';
+								value = expression();
 							}
 						}
 					} else {
@@ -106,6 +93,7 @@ int main(int argc, char* argv[]) {
 
 double expression() {
 	double value = term();
+
 	while (true) {
 		switch (token) {
 			case '+': {
@@ -127,6 +115,7 @@ double expression() {
 
 double term() {
 	double value = factor();
+
 	while (true) {
 		switch (token) {
 			case '*': {
@@ -148,6 +137,7 @@ double term() {
 
 double factor() {
 	double value = base();
+
 	while (true) {
 		switch (token) {
 			case '^': {
@@ -198,36 +188,43 @@ double factor() {
 
 double base() {
 	double value;
-	if (token == '(') {
-		next();
-		value = expression();
-		if (token == ')') {
+
+	switch (token) {
+		case '(': {
 			next();
-		} else {
-			error("unmatched parentheses");
-		}
-	} else if (token == '$') {
-		char buffer[256];
-		if (scanf("%255[a-zA-Z0-9_]", buffer)) {
-			next();
-			if (symbol.find(buffer) != symbol.end()) {
-				value = symbol[buffer];
-			} else {
-				error("undefined identifier");
-			}
-		} else {
-			error("invalid identifier");
-		}
-	} else {
-		if (isdigit(token) || token == '-') {
-			ungetc(token, stdin);
-			if (scanf("%lf", &value)) {
+			value = expression();
+			if (token == ')') {
 				next();
 			} else {
-				error("numeric scan error");
+				error("unmatched parentheses");
 			}
-		} else {
-			error("numeric value error");
+			break;
+		}
+		case '$': {
+			char buffer[256];
+			if (scanf("%255[a-zA-Z0-9_]", buffer)) {
+				if (symbol.find(buffer) != symbol.end()) {
+					next();
+					value = symbol[buffer];
+				} else {
+					error("undefined identifier");
+				}
+			} else {
+				error("invalid identifier");
+			}
+			break;
+		}
+		default: {
+			if (isdigit(token) || token == '-') {
+				ungetc(token, stdin);
+				if (scanf("%lf", &value)) {
+					next();
+				} else {
+					error("numeric scan error");
+				}
+			} else {
+				error("numeric value error");
+			}
 		}
 	}
 
