@@ -81,6 +81,10 @@ int main(int argc, char* argv[]) {
 				case '\n': {
 					continue;
 				}
+				case EOF: {
+					printf("\nBye\n");
+					return EXIT_SUCCESS;
+				}
 				default: {
 					value = expression();
 				}
