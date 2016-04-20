@@ -1,108 +1,138 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <float.h>
+#include <math.h>
 
-/*
-Grammar: EBNF:
-<exp> -> <term> { <addop> <term> }
-<addop> -> + | -
-<term> -> <factor> { <mulop> <factor> }
-<mulop> -> * | /
-#<factor> -> (exp) | Number
-<factor> -> <base> { <powop> <base> }
-<powop> -> ** | ^ | @
-<base> -> (exp) | Number
-
+/* Grammar(EBNF):
+	<exp> -> <term> { <addop> <term> }
+	<addop> -> + | -
+	<term> -> <factor> { <mulop> <factor> }
+	<mulop> -> * | /
+	<factor> -> <base> { <powop> <base> }
+	<powop> -> ^ | @ | % | ** | //
+	<base> -> (exp) | Number
 */
+
 char token;
-double exp(void);
-double term(void);
-double factor(void);
-void match(char expectedToken);
-char gettoken();
-#define error(message) fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, message); exit(EXIT_FAILURE);
+double exp();
+double term();
+double factor();
+double base();
+void next();
+#define error(message) fprintf(stderr, "%s:%d: Error: %s\n", __FILE__, __LINE__, message); exit(EXIT_FAILURE);
 
 int main(int argc, char* argv[]) {
-	double result;
-	token = gettoken();
+	printf("Nano Calculator (build: %s %s)\n", __DATE__, __TIME__);
+	printf(">>> ");
 
-	result = exp();
+	next();
+	double value = exp();
+
 	if (token == '\n') {
-		printf("Result = %.17g\n", result);
+		printf("%.17g\n", value);
 	} else {
-		error("main");
+		error("incomplete line");
 	}
 	return EXIT_SUCCESS;
 }
 
-double exp(void) {
-	double temp = term();
-	while ((token == '+') || (token == '-')) {
+double exp() {
+	double value = term();
+	while (true) {
 		switch (token) {
 			case '+': {
-				match('+');
-				temp += term();
+				next();
+				value += term();
 				break;
 			}
 			case '-': {
-				match('-');
-				temp -= term();
+				next();
+				value -= term();
 				break;
+			}
+			default: {
+				return value;
 			}
 		}
 	}
-	return temp;
 }
 
-double term(void) {
-	double temp = factor();
-	while ((token == '*') || (token == '/')) {
+double term() {
+	double value = factor();
+	while (true) {
 		switch (token) {
 			case '*': {
-				match('*');
-				temp *= factor();
+				next();
+				value *= factor();
 				break;
 			}
 			case '/': {
-				match('/');
-				temp /= factor();
+				next();
+				value /= factor();
 				break;
+			}
+			default: {
+				return value;
 			}
 		}
 	}
-	return temp;
 }
 
-double factor(void) {
-	double temp;
+double factor() {
+	double value = base();
+	while (true) {
+		switch (token) {
+			case '^': {
+				next();
+				value = pow(value, base());
+				break;
+			}
+			case '@': {
+				next();
+				value = pow(value, 1.0 / base());
+				break;
+			}
+			case '%': {
+				next();
+				value = fmod(value, base());
+				break;
+			}
+			default: {
+				return value;
+			}
+		}
+	}
+}
+
+double base() {
+	char sign = 1;
+	double value;
 	if (token == '(') {
-		match('(');
-		temp = exp();
-		match(')');
-	} else if (isdigit(token)) {
-		ungetc(token, stdin);
-		scanf("%lf", &temp);
-		token = gettoken();
+		next();
+		value = exp();
+		if (token == ')') {
+			next();
+		} else {
+			error("unmatched parentheses");
+		}
 	} else {
-		error("factor");
+		if (token == '-') {
+			sign = -1;
+			next();
+		}
+		if (isdigit(token)) {
+			ungetc(token, stdin);
+			scanf("%lf", &value);
+			next();
+		} else {
+			error("numeric value error");
+		}
 	}
-
-	return temp;
+	return sign * value;
 }
 
-void match(char expectedToken) {
-	if (token == expectedToken) {
-		token = gettoken();
-	} else {
-		error("match");
-	}
-}
-
-char gettoken() {
-	char c;
+void next() {
 	do {
-		c = getchar();
-	} while ((c == ' ') || (c == '\t'));
-	return c;
+		token = getchar();
+	} while ((token == ' ') || (token == '\t'));
 }
