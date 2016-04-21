@@ -12,6 +12,14 @@ num ({digit}*\.)?{digit}+
 	return NUM;
 }
 
+"**" {
+	return STAR2;
+}
+
+"//" {
+	return SLASH2;
+}
+
 <<EOF>> {
 	printf("\nBye\n");
 	return 0;
