@@ -1,14 +1,15 @@
 %{
-#include "main.tab.h"
+char var_buffer[256];
 %}
 
 digit [0-9]
 num ({digit}*\.)?{digit}+
+var $[a-zA-Z0-9_]+
 
 %%
 
 {num} {
-	yylval = atof(yytext);
+	yylval.NUM = atof(yytext);
 	return NUM;
 }
 
@@ -18,6 +19,11 @@ num ({digit}*\.)?{digit}+
 
 "//" {
 	return SLASH2;
+}
+
+{var} {
+	yylval.VAR = strncpy(var_buffer, yytext+1, yyleng-1);
+	return VAR;
 }
 
 <<EOF>> {

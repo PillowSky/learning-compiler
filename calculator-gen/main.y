@@ -12,7 +12,6 @@
 
 %{
 #include <stdio.h>
-#include <ctype.h>
 #include <math.h>
 #include <unordered_map>
 
@@ -23,10 +22,15 @@ int yylex(void);
 void yyerror(char* message);
 %}
 
-%define api.value.type {double}
-%token NUM
+%define api.value.type union
+%token <double> NUM
+%token <char*> VAR
+%type <double> exp
+
 %token STAR2 "**"
 %token SLASH2 "//"
+
+%precedence '='
 %left '-' '+'
 %left '*' '/'
 %precedence NEG
@@ -44,6 +48,8 @@ line: '\n'
 ;
 
 exp: NUM { $$ = $1; }
+    | VAR {$$ = symbol[$1]; }
+    | VAR '=' exp {$$ = $3; symbol[$1] = $3; }
 	| exp '+' exp { $$ = $1 + $3; }
 	| exp '-' exp { $$ = $1 - $3; }
 	| exp '*' exp { $$ = $1 * $3; }
@@ -58,6 +64,8 @@ exp: NUM { $$ = $1; }
 	;
 
 %%
+
+#include "main.lex.c"
 
 void yyerror(char* message) {
 	fprintf(stderr, "%s\n", message);
