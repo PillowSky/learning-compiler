@@ -83,8 +83,8 @@ int main(int argc, char* argv[]) {
 				error("incomplete line");
 			}
 		} catch (runtime_error& e) {
-			char c;
-			while((c = getchar()) != '\n' && c != EOF);
+			char buffer[256];
+			if (fgets(buffer, 256, stdin)) {};
 		}
 	}
 
