@@ -48,8 +48,8 @@ line: '\n'
 ;
 
 exp: NUM { $$ = $1; }
-    | VAR {$$ = symbol[$1]; }
-    | VAR '=' exp {$$ = $3; symbol[$1] = $3; }
+    | VAR { if (symbol.find($1) != symbol.end()) { $$ = symbol[$1]; } else { yyerror("undefined identifier"); return 1; } }
+    | VAR '=' exp { $$ = $3; symbol[$1] = $3; }
 	| exp '+' exp { $$ = $1 + $3; }
 	| exp '-' exp { $$ = $1 - $3; }
 	| exp '*' exp { $$ = $1 * $3; }
