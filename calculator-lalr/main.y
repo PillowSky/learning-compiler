@@ -27,14 +27,14 @@ void yyerror(char* message);
 %token <char*> VAR
 %type <double> exp
 
-%token STAR2 "**"
-%token SLASH2 "//"
+%token POWER
+%token DIVI
 
 %precedence '='
 %left '-' '+'
 %left '*' '/'
 %precedence NEG
-%right '^' '@' '%' "**" "//"
+%right '^' '@' '%' POWER DIVI
 %start input
 
 %%
@@ -43,13 +43,14 @@ input: %empty
 	 | input line
 	 ;
 
-line: '\n'
+line: '\n' { printf(">>> "); }
 	| exp '\n' { printf("%.17g\n", $1); printf(">>> "); }
+	| error '\n' { yyerrok; printf(">>> "); }
 ;
 
 exp: NUM { $$ = $1; }
-    | VAR { if (symbol.find($1) != symbol.end()) { $$ = symbol[$1]; } else { yyerror("undefined identifier"); return 1; } }
-    | VAR '=' exp { $$ = $3; symbol[$1] = $3; }
+	| VAR { if (symbol.find($1) != symbol.end()) { $$ = symbol[$1]; } else { $$ = 0; yyerror("undefined identifier"); }; delete[] $1; }
+	| VAR '=' exp { $$ = symbol[$1] = $3; delete[] $1; }
 	| exp '+' exp { $$ = $1 + $3; }
 	| exp '-' exp { $$ = $1 - $3; }
 	| exp '*' exp { $$ = $1 * $3; }
@@ -58,8 +59,8 @@ exp: NUM { $$ = $1; }
 	| exp '^' exp { $$ = pow($1, $3); }
 	| exp '@' exp { $$ = pow($1, 1.0 / $3); }
 	| exp '%' exp { $$ = fmod($1, $3); }
-	| exp "**" exp { $$ = pow($1, $3); }
-	| exp "//" exp { $$ = int($1 / $3); }
+	| exp POWER exp { $$ = pow($1, $3); }
+	| exp DIVI exp { $$ = int($1 / $3); }
 	| '(' exp ')' { $$ = $2; }
 	;
 

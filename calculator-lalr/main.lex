@@ -1,5 +1,6 @@
 %{
-char var_buffer[256];
+#include <stdlib.h>
+#include <string.h>
 %}
 
 digit [0-9]
@@ -14,15 +15,15 @@ var $[a-zA-Z0-9_]+
 }
 
 "**" {
-	return STAR2;
+	return POWER;
 }
 
 "//" {
-	return SLASH2;
+	return DIVI;
 }
 
 {var} {
-	yylval.VAR = strncpy(var_buffer, yytext+1, yyleng-1);
+	yylval.VAR = strncpy(new char[yyleng], yytext+1, yyleng);
 	return VAR;
 }
 
