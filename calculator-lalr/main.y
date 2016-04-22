@@ -44,7 +44,7 @@ void yyerror(char* message);
 %left '-' '+'
 %left '*' '/'
 %precedence NEG
-%right '^' '@' '%' POWER DIVI
+%right '^' '@' '%' STAR2 SLASH2
 %start input
 
 %%

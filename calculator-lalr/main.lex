@@ -3,8 +3,7 @@
 #include <string.h>
 %}
 
-digit [0-9]
-num ({digit}*\.)?{digit}+
+num [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?
 var $[a-zA-Z0-9_]+
 
 %%
