@@ -1,14 +1,4 @@
-/* Grammar(EBNF):
-	<statement> -> <identifier> = <expression>
-	<identifier> -> $[a-zA-Z0-9_]{[a-zA-Z0-9_]}
-	<expression> -> <term> { <addop> <term> }
-	<addop> -> + | -
-	<term> -> <factor> { <mulop> <factor> }
-	<mulop> -> * | /
-	<factor> -> <base> { <powop> <base> }
-	<powop> -> ^ | @ | % | ** | //
-	<base> -> (expression) | <identifier> | NUMBER
-*/
+/* Nano Calculator */
 
 %{
 #include <stdio.h>
@@ -16,6 +6,8 @@
 #include <unordered_map>
 
 using namespace std;
+
+bool success = true;
 unordered_map<string, double> symbol;
 
 int yylex(void);
@@ -44,12 +36,12 @@ input: %empty
 	 ;
 
 line: '\n' { printf(">>> "); }
-	| exp '\n' { printf("%.17g\n", $1); printf(">>> "); }
+	| exp '\n' { if (success) { printf("%.17g\n", $1); } else { success = true; }; printf(">>> "); }
 	| error '\n' { yyerrok; printf(">>> "); }
 ;
 
 exp: NUM { $$ = $1; }
-	| VAR { if (symbol.find($1) != symbol.end()) { $$ = symbol[$1]; } else { $$ = 0; yyerror("undefined identifier"); }; delete[] $1; }
+	| VAR { if (symbol.find($1) != symbol.end()) { $$ = symbol[$1]; } else { success = false; yyerror("undefined identifier"); }; delete[] $1; }
 	| VAR '=' exp { $$ = symbol[$1] = $3; delete[] $1; }
 	| exp '+' exp { $$ = $1 + $3; }
 	| exp '-' exp { $$ = $1 - $3; }
